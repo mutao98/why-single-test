@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>为什么一直单身 · 一个帮你看清自己的小测试</title>
+<style>
+  :root{
+    --bg:#F4F8FF;
+    --card:#FFFFFF;
+    --primary:#1E5AA8;
+    --light:#D6E6FA;
+    --ink:#1A1A1A;
+    --sub:#6B7280;
+    --tiny:#9CA3AF;
+    --shadow:0 4px 20px rgba(30,90,168,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.6;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));}
+
+  /* 顶部进度条 */
+  .bar-track{height:4px;background:var(--light);border-radius:999px;overflow:hidden;margin-bottom:16px;}
+  .bar-fill{height:100%;background:var(--primary);border-radius:999px;width:0;transition:width .25s ease;}
+
+  .card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:24px 20px;}
+  .meta-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;}
+  .brand{font-size:13px;color:var(--sub);}
+  .progress-text{font-size:12px;color:var(--primary);white-space:nowrap;}
+
+  .q-text{font-size:19px;font-weight:700;line-height:1.5;margin:2px 0 6px;color:var(--ink);}
+  .q-hint{font-size:13px;color:var(--sub);margin:0 0 20px;}
+  .opts{display:flex;flex-direction:column;gap:12px;}
+  .opt{
+    display:block;width:100%;text-align:left;background:#fff;color:var(--ink);
+    border:1.5px solid var(--light);border-radius:16px;padding:14px 16px;
+    font-size:16px;line-height:1.55;cursor:pointer;word-break:break-word;
+    transition:transform .15s ease,background .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .opt:hover{transform:translateY(-1px);border-color:#bcd4f5;}
+  .opt:active{transform:translateY(0);}
+  .opt.selected{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .opt:focus-visible{outline:3px solid rgba(30,90,168,.3);outline-offset:2px;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-top:24px;gap:12px;}
+  .back{background:#fff;color:var(--sub);border:1.5px solid var(--light);border-radius:12px;padding:9px 16px;font-size:15px;cursor:pointer;}
+  .back:disabled{opacity:.4;cursor:default;}
+  .back:focus-visible,.btn:focus-visible{outline:3px solid rgba(30,90,168,.3);outline-offset:2px;}
+  .clear{background:none;border:none;color:var(--tiny);font-size:13px;cursor:pointer;text-decoration:underline;}
+
+  /* ===== 结果页 ===== */
+  .r-label{font-size:28px;font-weight:800;color:var(--primary);line-height:1.3;margin:2px 0 8px;word-break:break-word;}
+  .r-oneline{font-size:15px;color:var(--sub);margin:0 0 16px;line-height:1.5;}
+  .caps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .cap{background:var(--light);color:var(--primary);font-size:12px;font-weight:600;border-radius:999px;padding:5px 12px;white-space:nowrap;}
+  .r-mode{font-size:12px;color:var(--tiny);margin:0 0 20px;}
+
+  .r-block{margin-bottom:18px;}
+  .r-block h3{display:inline-block;font-size:12px;font-weight:700;color:var(--primary);background:var(--light);
+    border-radius:999px;padding:4px 12px;margin:0 0 8px;}
+  .r-block p{margin:0;font-size:15px;color:var(--ink);line-height:1.65;word-break:break-word;}
+
+  .btn{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:16px;
+    padding:14px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);}
+  .btn.secondary{background:#fff;color:var(--primary);border:1.5px solid var(--light);box-shadow:none;margin-top:12px;}
+  .copy-note{font-size:12px;color:var(--primary);text-align:center;margin-top:8px;min-height:16px;}
+  .footer{font-size:12px;color:var(--tiny);text-align:center;margin-top:22px;line-height:1.7;}
+
+  @media (max-width:360px){
+    .card{padding:20px 16px;}
+    .q-text{font-size:18px;}
+    .r-label{font-size:25px;}
+    .opt{font-size:15px;padding:13px 14px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar-track"><div class="bar-fill" id="barfill"></div></div>
+  <div class="card">
+    <div class="meta-row">
+      <div class="brand">一个关于单身的小测试</div>
+      <div class="progress-text" id="progress" aria-live="polite"></div>
+    </div>
+    <main id="app" tabindex="-1"></main>
+  </div>
+</div>
+
+<script>
+/* ============================ 维度与路径 ============================ */
+var DIMS = ['av','ax','ex','au'];
+var ROUTE_BASE = { A:16, B:17, C:15, D:14 };
+
+/* ============================ 题库 ============================ */
+var NODES = [
+  { id:'q0', question:'先问个最实在的：对于“现在还单身”这件事，你更接近哪种状态？',
+    options:[
+      {text:'是我自己选的。现在这样挺好，暂时没打算改变。', setRoute:'A', next:'av_close'},
+      {text:'我不排斥恋爱，但不会为了它打乱现在的日子。', setRoute:'B', next:'av_close'},
+      {text:'我其实想脱单，可总觉得卡在什么地方。', setRoute:'C', next:'c_stage'},
+      {text:'我说不清，没认真想过，或者一阵子一个想法。', setRoute:'D', next:'av_close'}
+    ]},
+
+  { id:'c_stage', question:'如果把“谈成一段恋爱”拆成几段，你最常卡在哪一段？',
+    options:[
+      {text:'认识新人这一步。软件上聊两句就懒得继续，或者不知道怎么开口。', next:'c_meet'},
+      {text:'接触一阵、要往认真关系走的时候，我会犹豫或往后缩。', next:'c_serious'},
+      {text:'在一起之后。相处一久就容易出问题，或者我觉得累。', next:'c_maintain'},
+      {text:'一段关系结束之后。我要花很久缓过来，不太敢再开始。', next:'c_recover'},
+      {text:'我说不上具体哪段，反正每次都没走到最后。', next:'c_meet'}
+    ]},
+
+  { id:'c_meet', dims:['av','ax','ex','au'], next:'av_close',
+    question:'让你在“认识人”这一步提不起劲，最常见的原因是？',
+    options:[
+      {text:'上了一天班或学，真的没力气再从头介绍自己、找话题。', score:{ex:3}},
+      {text:'聊了几个来回，我就想退出来，觉得被占着、不自在。', score:{av:2,ex:1}},
+      {text:'我会担心对方其实没那么感兴趣，怕自己主动了显得尴尬。', score:{ax:3}},
+      {text:'见过的人里，很难遇到让我觉得“想多了解一点”的。', score:{au:1,av:1}},
+      {text:'我没怎么正经认识过新人，想象里我会先在旁边看很久。', score:{ax:1,av:1}}
+    ]},
+
+  { id:'c_serious', dims:['av','ax','ex','au'], next:'av_close',
+    question:'当对方开始认真、想确定关系时，你第一反应通常是？',
+    options:[
+      {text:'心里一紧，想先拉开一点距离，觉得自由要被拿走了。', score:{av:3}},
+      {text:'一方面高兴，一方面又怕之后走不长，先在脑子里演了很多坏结果。', score:{ax:2,av:1}},
+      {text:'会开始想现实问题：钱、时间、住处，一想就觉得眼下顾不过来。', score:{ex:3}},
+      {text:'如果对方是对的人我愿意，但我常常不确定对方到底是不是。', score:{ax:1,au:1}},
+      {text:'没经历过这一步，我想象自己会先拖一阵，等心里踏实了再说。', score:{av:1,ax:1}}
+    ]},
+
+  { id:'c_maintain', dims:['av','ax','ex'], next:'av_close',
+    question:'在一起相处变久之后，最让你觉得耗的是？',
+    options:[
+      {text:'对方情绪一有变化我就会想是不是我哪里做错了，心里一直悬着。', score:{ax:3}},
+      {text:'要一直报备、照顾对方感受、协调两个人的安排，我会觉得喘不过气。', score:{av:2,ex:1}},
+      {text:'工作和生活已经够累了，回到关系里还要处理矛盾，我没那么多电。', score:{ex:3}},
+      {text:'时间一长我容易想要更多自己的空间，对方会觉得我在疏远。', score:{av:3}},
+      {text:'我没真正长期相处过，但想到要长期迁就另一个人，会有点发怵。', score:{av:1,ex:1}}
+    ]},
+
+  { id:'c_recover', dims:['av','ax','ex','au'], next:'av_close',
+    question:'一段关系结束之后，你通常是什么状态？',
+    options:[
+      {text:'会反复想是不是自己不够好，很久都走不出来。', score:{ax:3}},
+      {text:'表面没事，但一想到要重新认识人、重新交代一遍自己，就觉得累。', score:{ex:2,av:1}},
+      {text:'我需要很长时间一个人待着，期间谁靠近都不太想理。', score:{av:2,au:1}},
+      {text:'缓过来之后我其实挺自在的，不太急着再进入下一段。', score:{au:3}},
+      {text:'我没经历过真正的分手，这种情况对我来说还比较陌生。', score:{au:1}}
+    ]},
+
+  { id:'av_close', dims:['av','ax','au'], next:'av_self',
+    nextByRoute:{A:'av_self',B:'av_self',C:'av_self',D:'av_self'},
+    question:'想象一下：有人对你表现出明显好感，走得比你预期的近。你第一反应更接近？',
+    options:[
+      {text:'心里会“咯噔”一下，想先往后退半步，缓一缓。', score:{av:3}, next:'av_stepback'},
+      {text:'有点高兴，但也会开始紧张，忍不住想对方是不是认真的。', score:{ax:2,av:1}},
+      {text:'如果对方还不错我愿意接触，但我得按自己的节奏来，不想被推着走。', score:{av:1,au:1}},
+      {text:'我会先观察对方到底是个什么样的人，确认靠谱了再靠近。', score:{ax:1,av:1}},
+      {text:'挺自然的，有人喜欢我，我也有感觉的话就顺着往下走。', score:{au:2}},
+      {text:'没怎么遇到过，想象里我大概率会先愣住，然后找朋友帮我分析。', score:{ax:1}}
+    ]},
+
+  { id:'av_stepback', dims:['av','ax','au'], next:'av_self',
+    question:'当你想退半步的时候，最贴近的那种感觉是？',
+    options:[
+      {text:'觉得自己的空间和节奏要被占了，有点不自由。', score:{av:3,au:1}},
+      {text:'怕现在靠得越近，之后失望越大。', score:{av:2,ax:2}},
+      {text:'怕自己搞砸，比如不知道怎么回应、处理不好这段关系。', score:{ax:3,av:1}},
+      {text:'说不上是怕，就是直觉觉得这个人或这个节奏不太对。', score:{au:1,av:1}},
+      {text:'两种以上都有，但最先冒出来的是想先一个人待着。', score:{av:2}}
+    ]},
+
+  { id:'av_self', dims:['av','au'], next:'av_space',
+    question:'生活里遇到难事，你的习惯更接近？',
+    options:[
+      {text:'先自己想办法扛，实在搞不定才会开口，而且开口时还会有点别扭。', score:{av:3}},
+      {text:'能自己解决就自己解决，觉得这样最省事、最可控。', score:{av:2,au:1}},
+      {text:'会找亲近的人聊聊，但最后拿主意还是靠自己。', score:{au:1}},
+      {text:'我挺愿意找人帮忙的，不觉得这有什么。', score:{au:2}},
+      {text:'我会先自己消化一下情绪，等平复了再决定要不要说。', score:{av:1}}
+    ]},
+
+  { id:'av_space', dims:['av','au'], next:'av_help',
+    nextByRoute:{A:'av_help',B:'av_help',C:'ax_reply',D:'ax_reply'},
+    question:'如果在一起，对方想更多进入你的日常——比如随时知道你在哪、干涉你的安排。你会？',
+    options:[
+      {text:'很不舒服，觉得被盯着，会想办法把边界拉回来。', score:{av:3}},
+      {text:'短时间能忍，时间一长就想逃，觉得喘不过气。', score:{av:2}},
+      {text:'看对方怎么沟通，好好说我可以配合，但不能是命令式的。', score:{au:1}},
+      {text:'如果我很在乎对方，其实不介意，甚至会觉得被惦记。', score:{au:1}},
+      {text:'我没经历过，但想象里我会很明确地把自己的底线讲清楚。', score:{av:1,au:1}}
+    ]},
+
+  { id:'av_help', dims:['av','au'], next:'ax_reply',
+    nextByRoute:{A:'neutral_comfort',B:'ax_reply'},
+    question:'当别人主动想照顾你、对你好，比如帮你打点好事情，你更接近？',
+    options:[
+      {text:'第一反应是不太习惯，甚至有点想拒绝，觉得欠人情。', score:{av:3}},
+      {text:'心里暖，但会想自己是不是也得赶紧还回去。', score:{av:1,au:1}},
+      {text:'看人，信得过的人我会安心接受。', score:{au:1}},
+      {text:'挺享受的，有人惦记是好事。', score:{au:2}},
+      {text:'我通常是照顾别人的那个，反过来被照顾会有点不自在。', score:{av:2,au:1}}
+    ]},
+
+  { id:'neutral_comfort', dims:['av','au'], next:'ax_reply',
+    question:'只是了解一下你的相处习惯：和另一个人走得很近、保持长期亲密，对你来说？',
+    options:[
+      {text:'我可以很亲密，但需要保留随时能退回自己空间的权利。', score:{av:2,au:1}},
+      {text:'我不排斥，前提是对方尊重我的节奏，不催我。', score:{au:2}},
+      {text:'我其实能享受亲密，只是目前没把它排在优先位置。', score:{au:2}},
+      {text:'长期亲密对我来说有点陌生，我更习惯关系淡一点、松一点。', score:{av:2}},
+      {text:'我没仔细想过，这取决于遇到的是谁。', score:{au:1}}
+    ]},
+
+  { id:'ax_reply', dims:['ax','au'], next:'ax_mood',
+    nextByRoute:{A:'ex_battery',B:'ax_mood',C:'ax_mood',D:'ax_mood'},
+    question:'你给有好感的人发了消息，对方大半天没回。你更接近？',
+    options:[
+      {text:'会忍不住想是不是自己哪句话说错了，反复点开聊天框看。', score:{ax:3}},
+      {text:'心里有点打鼓，但还能忍住不催，先去忙别的。', score:{ax:2}},
+      {text:'觉得对方可能在忙，不太会往心里去。', score:{au:2}},
+      {text:'我会找点别的事把注意力挪开，不然容易越想越多。', score:{ax:1}},
+      {text:'我很少主动发消息，所以这种情况对我来说没什么体会。', score:{au:1}}
+    ]},
+
+  { id:'ax_mood', dims:['ax','au'], next:'ax_overthink',
+    nextByRoute:{B:'ax_overthink',C:'ax_overthink',D:'ex_battery'},
+    question:'你感觉对方今天有点冷淡，但又说不上具体哪里不对。你通常？',
+    options:[
+      {text:'会一直琢磨，甚至预设“是不是要结束了”，情绪被牵着走。', score:{ax:3}},
+      {text:'想直接问，又怕问了显得自己小题大做，在心里来回拉扯。', score:{ax:2}},
+      {text:'先观察一两天，看是不是对方只是累了。', score:{ax:1}},
+      {text:'我会直接问清楚，省得自己猜。', score:{au:1}},
+      {text:'我对这种变化不太敏感，常常是朋友提醒我才注意到。', score:{au:2}}
+    ]},
+
+  { id:'ax_overthink', dims:['ax','au'], next:'ax_confirm',
+    nextByRoute:{B:'ax_confirm',C:'ex_battery'},
+    question:'和对方见完面或聊完天之后，你会？',
+    options:[
+      {text:'反复回放自己说过的话，担心哪句不得体、对方怎么看我。', score:{ax:3}},
+      {text:'偶尔会想一下，但整体还是开心的。', score:{ax:1}},
+      {text:'聊得好就高高兴兴去忙别的，不太会复盘。', score:{au:2}},
+      {text:'我更多是在想“我们到底合不合适”，而不是自己表现得好不好。', score:{au:1}},
+      {text:'我会想很多，所以有时干脆减少见面，省得自己太累。', score:{ax:2}}
+    ]},
+
+  { id:'ax_confirm', dims:['ax','au'], next:'ex_battery',
+    question:'在一段关系里，关于“对方到底在不在乎我”，你更接近？',
+    options:[
+      {text:'需要对方反复用行动或话确认，一旦确认少了，我就容易不安。', score:{ax:3}},
+      {text:'心里其实知道，但对方情绪不好时，我还是会没底。', score:{ax:2}},
+      {text:'我比较能从日常相处里感受到，不需要一直确认。', score:{au:2}},
+      {text:'我反而不太会去确认，觉得老问这个有点别扭。', score:{au:1}},
+      {text:'没正经谈过，我想象自己会更多看对方怎么做，而不是听怎么说。', score:{ax:1}}
+    ]},
+
+  { id:'ex_battery', dims:['ex','au'], next:'ex_weekend',
+    question:'忙完一天的工作、学习或家务之后，你的电量通常是？',
+    options:[
+      {text:'基本见底，只想瘫着，谁也别来跟我要情绪价值。', score:{ex:3}},
+      {text:'剩一点点，能回消息就不错了，认真聊天真的撑不住。', score:{ex:2}},
+      {text:'看忙的程度，累的时候我会直接说“今天不想说话”。', score:{ex:1,au:1}},
+      {text:'还好，我恢复得比较快，晚上还能安排点自己的事。', score:{au:2}},
+      {text:'我累的时候更想一个人待着，有人在旁边反而更耗。', score:{ex:2}}
+    ]},
+
+  { id:'ex_weekend', dims:['ex','au'], next:'ex_money',
+    nextByRoute:{A:'ex_money',B:'ex_money',C:'ex_money',D:'ex_social'},
+    question:'好不容易有个完整的周末，你更想怎么安排？',
+    options:[
+      {text:'谁也别约我，我就想在家补觉、发呆、按自己的节奏来。', score:{ex:2,au:2}},
+      {text:'想认识新人，但一想到要出门、收拾、找话题，就又放下了。', score:{ex:3}},
+      {text:'会安排少量社交，见完之后必须留半天给自己回血。', score:{ex:2}},
+      {text:'我周末其实挺充实的，爱好、朋友、休息都排得过来。', score:{au:2}},
+      {text:'周末经常被工作或家里的事占掉，能留给自己的时间很少。', score:{ex:3}}
+    ]},
+
+  { id:'ex_money', dims:['ex','au'], next:'ex_social',
+    nextByRoute:{A:'ex_social',B:'ex_social',C:'au_alone'},
+    question:'谈到钱、住处、未来安排这些现实问题，你更接近？',
+    options:[
+      {text:'眼下自己顾好就不错了，再加上一个人，我怕负担不过来。', score:{ex:3}},
+      {text:'会想等自己更稳一点再说，不想在没准备好的时候开始。', score:{ex:2}},
+      {text:'我觉得两个人可以一起想办法，不是非得一个人扛完。', score:{au:2}},
+      {text:'这方面我没什么压力，不会因为现实条件回避关系。', score:{au:2}},
+      {text:'我还没认真算过这些，但想到要为另一个人负责，会有点紧。', score:{ex:1}}
+    ]},
+
+  { id:'ex_social', dims:['ex','au'], next:'au_alone',
+    question:'参加完一场人比较多的社交，你通常？',
+    options:[
+      {text:'像被抽干了，需要一个人安静很久才能缓过来。', score:{ex:3}},
+      {text:'当时挺开心，结束后就不想再说话了。', score:{ex:2}},
+      {text:'看跟谁去，跟舒服的人在一起，我反而能充电。', score:{au:1}},
+      {text:'我还挺享受热闹的，结束后不会觉得累。', score:{au:2}},
+      {text:'我本来就很少参加这种场合，能推就推。', score:{ex:2}}
+    ]},
+
+  { id:'au_alone', dims:['au','ax'], next:'au_life',
+    question:'一个人去吃饭、看电影、逛街，甚至一个人去医院，你感觉？',
+    options:[
+      {text:'挺自在的，不用迁就谁，想走就走、想停就停。', score:{au:3}},
+      {text:'大部分时候没问题，偶尔看到别人成双成对会有一点感觉。', score:{au:2,ax:1}},
+      {text:'事情能自己办，但心里还是希望有个人能搭把手、说说话。', score:{ax:2}},
+      {text:'一个人久了会有点闷，但也没到非要找人的程度。', score:{au:1}},
+      {text:'我不太喜欢一个人做这些，能叫上朋友就叫上。', score:{ax:1}}
+    ]},
+
+  { id:'au_life', dims:['au','ax','ex'], next:'au_value',
+    question:'抛开“有没有对象”不谈，你对现在的生活整体满意吗？',
+    options:[
+      {text:'挺满意的，有自己的节奏和想做的事，日子是满的。', score:{au:3}},
+      {text:'大体可以，有几个小地方想调整，但不影响我过好当下。', score:{au:2}},
+      {text:'说不上满意也说不上不满意，就是一天天过。', score:{ex:1}},
+      {text:'不太满意，我觉得有个人一起，生活会不太一样。', score:{ax:2}},
+      {text:'我现在的生活有点乱，光是应付眼前就用了不少力气。', score:{ex:3}}
+    ]},
+
+  { id:'au_value', dims:['au','av','ax'], next:'au_nutrition',
+    nextByRoute:{A:'au_nutrition',B:'au_nutrition',C:null,D:'au_nutrition'},
+    question:'关于“自由”和“两个人”，你内心更认同？',
+    options:[
+      {text:'现在的我把自由、节奏和自我空间放得很靠前，不想为关系让渡太多。', score:{au:3,av:1}},
+      {text:'我不是反对两个人，只是不想为了“该谈恋爱了”而谈。', score:{au:2}},
+      {text:'如果遇到对的人，我愿意调整一部分自由，但得是我自己愿意。', score:{au:1}},
+      {text:'我其实挺期待两个人的，自由对我来说没那么重要。', score:{ax:2}},
+      {text:'我没想这么抽象，就是觉得现在一个人更顺手。', score:{au:1,av:1}}
+    ]},
+
+  { id:'au_nutrition', dims:['au','ax','ex'], next:null,
+    nextByRoute:{A:null,B:null,D:'d_light'},
+    question:'当你需要情感支持、想被理解的时候，你通常从哪里得到？',
+    options:[
+      {text:'自己消化，或者靠爱好、宠物、独处把自己养回来。', score:{au:2}},
+      {text:'家人和老朋友，有几个固定的人就够了。', score:{au:2}},
+      {text:'我会写下来、走走、运动，用自己的方式整理情绪。', score:{au:2}},
+      {text:'我会希望有个伴侣能接住我，现在这部分有点空。', score:{ax:3}},
+      {text:'说实话，我现在能获得情感支持的渠道不太多。', score:{ex:2,ax:1}}
+    ]},
+
+  { id:'d_light', question:'最后随便感受一下：如果用一个词形容你现在和“恋爱”的关系，更接近？', next:null,
+    options:[
+      {text:'暂停键——不是拒绝，就是先放着。', score:{au:2}},
+      {text:'低电量——不是不想，是暂时带不动。', score:{ex:2}},
+      {text:'观望中——门没关，但也没特意等谁。', score:{au:1,ax:1}},
+      {text:'有点拧巴——想靠近又有点犯怵。', score:{ax:1,av:1}},
+      {text:'我真的还没想清楚，先这样也挺好。', score:{au:1}}
+    ]}
+];
+
+var NODE_MAP = {};
+NODES.forEach(function(n){ NODE_MAP[n.id] = n; });
+
+/* ============================ 结果文案（三段式） ============================ */
+var RESULT_TEXTS = {
+  active_autonomous:{
+    label:'自足型单身者',
+    oneline:'你不是在等谁来，你在过自己的日子',
+    keywords:['自由','完整','不将就'],
+    look:'你一个人也能把日子过得有滋味，爱好、节奏、空间都稳稳握在自己手里。独处能给你充电，周末去菜场、回家做饭、晚上看一部喜欢的电影，身边有没有人，并不影响你觉得今天过得踏实、值得。',
+    stuck:'你没什么需要被“修”的卡点，只需留意别把“我不需要”慢慢过成“不习惯任何人靠近”，把门留一条缝就好。',
+    tryit:'如果愿意，也许可以试试遇到想对你好的人时先别急着退，安心接受一次小帮忙，看看心里什么感觉，不舒服随时可以停下来。'
+  },
+  av_primary:{
+    label:'回避型依恋倾向',
+    oneline:'靠自己是你的安全区，靠近会让你想退半步',
+    keywords:['独立','边界','慢热'],
+    look:'遇到事你习惯先自己扛，别人走得太近，你会本能地想留一点距离。这不是冷漠，而是你在过往经历里学会的、最让自己安心的一种活法，它确实替你挡掉过一些失望，也让你一直很独立。',
+    stuck:'你容易在还没看清一个人之前就先把门关上，需要分清现在的独自，是真的喜欢一个人，还是不敢靠别人。',
+    tryit:'如果愿意，也许可以试试挑一件自己搞不定的小事，主动找一个信得过的人求助一次，看看天会不会真的塌下来，结果也许和你想的不一样。'
+  },
+  ax_primary:{
+    label:'焦虑型依恋倾向',
+    oneline:'你很在乎，所以总在确认对方还在不在',
+    keywords:['敏感','在意','用力'],
+    look:'对方回得慢一点、语气淡一点，你心里就会咯噔一下，忍不住反复琢磨是不是自己哪里不好。你其实很想靠近，也很在乎对方，只是这份在乎常常变成心里的一场独角戏，对方还没怎样，你已经累了。',
+    stuck:'你对“被喜欢”这件事不太有底，很多让你紧张的信号，其实是心里的不安替你脑补出来的，并不一定是真的。',
+    tryit:'如果愿意，也许可以试试下次又开始猜时，把“他在忙”和“他讨厌我”两种解释都写下来，等见面时再看哪个更接近事实，用一次真实回答代替一晚的猜测。'
+  },
+  ex_primary:{
+    label:'耗竭型单身者',
+    oneline:'不是不想爱，是电量只够撑到下班',
+    keywords:['疲惫','现实','先顾自己'],
+    look:'工作、家务、经济把你一天的精力占得差不多，能留给自己的时间只想用来补觉、发呆。认识新人要重新介绍自己、找话题、管理情绪，对你来说不是心动，更像又一项任务，光是想想就觉得累。',
+    stuck:'社交带宽变窄真的不是你的错，是生活本来就有重量，你现在的容量确实有限，先承认这一点，比硬撑更重要。',
+    tryit:'如果愿意，也许可以试试先把“要脱单”从待办清单上拿掉，只在精力好的那天和聊得来的人多说两句话，累了就停，不勉强自己。'
+  },
+  mix_av_ax:{
+    label:'矛盾型依恋倾向',
+    oneline:'想靠近，又怕靠太近会乱',
+    keywords:['拉扯','谨慎','想被懂'],
+    look:'你既渴望被喜欢，又不太信自己能稳稳接住一段关系。于是在“再近一点”和“算了吧”之间来回，关系还没开始，你已经先在心里消耗了好几轮，一边期待，一边又在给自己留退路。',
+    stuck:'两股劲儿在拉扯，你需要看清它们分别在怕什么，而不是急着选一个方向，看清之后，怎么走都可以。',
+    tryit:'如果愿意，也许可以试试下次想退时先问自己一句“我是不喜欢这个人，还是单纯在害怕”，把人和恐惧分开看，答案会清楚一点。'
+  },
+  mix_au_av:{
+    label:'留门型单身者',
+    oneline:'门一直虚掩着，只是还没遇到值得调整节奏的人',
+    keywords:['松弛','有底线','门开着'],
+    look:'你享受单身，却也没把路走死，对关系的态度更像“有很好，没有也行”。这份松弛让你既不会因为孤单而将就，也不会因为害怕就把门焊死，你有自己的节奏，也有自己清晰的底线。',
+    stuck:'你对自由的看重，有时会让你在刚感到一点束缚时就往后退，可能还没看清对方值不值得，就先护住了自己的空间。',
+    tryit:'如果愿意，也许可以试试遇到让你有点好奇的人时，允许自己比平时多往前走半步，多答应一次邀约看看，不舒服随时可以停。'
+  },
+  mix_ex_ax:{
+    label:'过载型单身者',
+    oneline:'一边累到不想说话，一边又管不住自己去想',
+    keywords:['双耗','敏感','需要减负'],
+    look:'生活占去你大部分电量，偏偏你又很在意对方的反应，越累越容易因为一点小信号就没底。你既带不动一段关系，又放不下心里的期待，两头都在耗，白天累，晚上也没能真正歇下来。',
+    stuck:'疲惫时情绪承受力本来就会变低，你眼下更需要的是减负，而不是再给自己加一道难题，先把电照顾好。',
+    tryit:'如果愿意，也许可以试试先把关系的事放一放，集中做一件能真正回血的事，比如推掉一两个可有可无的安排，把时间还给自己。'
+  },
+  low_relaxed:{
+    label:'松弛型关系者',
+    oneline:'单身也行，恋爱也行，你不太慌',
+    keywords:['平稳','弹性','顺其自然'],
+    look:'你没有明显的退缩或不安，也没被生活耗尽，能一个人过得好好的，也不排斥哪天遇到谁。这是个很舒服的位置，弹性很大，不需要硬从里面找出什么问题来解决，你现在这样就挺好。',
+    stuck:'你基本没有卡点，唯一要做的是保持这份松弛，别被周围的催婚声音和别人的节奏带着走，也别完全关上认识人的门。',
+    tryit:'如果愿意，也许可以试试不用刻意改变什么，只是遇到有意思的人时顺着自然机会多接触一下，不刻意、也不刻意回避，让门保持开着。'
+  },
+  undefined_d:{
+    label:'探索型关系者',
+    oneline:'你还在感受自己到底想要什么，这很正常',
+    keywords:['未定型','观察中','诚实'],
+    look:'你几种感觉都有一点，没有哪种特别强烈、特别稳定。单身还是恋爱，不是一道必须立刻交卷的题，允许自己暂时说不清，本身就是一种诚实的答案，你只是还在感受自己到底想要什么。',
+    stuck:'你没有被卡住，只是还在观察，什么时刻享受独处、什么时刻希望身边有人，答案还在慢慢浮现，不用急。',
+    tryit:'如果愿意，也许可以试试接下来每次对单身有明显感觉时，随手记一笔当时的场景和心情，攒一阵你会更容易看清自己的倾向。'
+  }
+};
+
+/* ============================ 存储（localStorage 降级内存） ============================ */
+var STORE_KEY = 'single_test_state_v1';
+var memoryStore = {};
+var hasLS = (function(){
+  try{
+    var k='__t__'; window.localStorage.setItem(k,'1'); window.localStorage.removeItem(k); return true;
+  }catch(e){ return false; }
+})();
+function storageSet(obj){
+  var raw = JSON.stringify(obj);
+  if(hasLS){ try{ window.localStorage.setItem(STORE_KEY, raw); return; }catch(e){} }
+  memoryStore[STORE_KEY] = raw;
+}
+function storageGet(){
+  var raw;
+  if(hasLS){ try{ raw = window.localStorage.getItem(STORE_KEY); }catch(e){ raw = null; } }
+  else { raw = memoryStore[STORE_KEY] || null; }
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
+function storageClear(){
+  if(hasLS){ try{ window.localStorage.removeItem(STORE_KEY); }catch(e){} }
+  delete memoryStore[STORE_KEY];
+}
+
+/* ============================ 状态 ============================ */
+var state = { route:'B', path:['q0'], viewIndex:0, answers:{} };
+
+function init(){
+  var saved = storageGet();
+  if(saved && saved.path && saved.path.length && typeof saved.viewIndex==='number'){
+    var valid = saved.path.every(function(id){ return !!NODE_MAP[id]; });
+    if(valid){
+      state.route = saved.route || 'B';
+      state.path = saved.path;
+      state.viewIndex = Math.min(saved.viewIndex, saved.path.length-1);
+      state.answers = saved.answers || {};
+    }
+  }
+  render();
+}
+
+function resolveNext(node, route, opt){
+  if(opt && Object.prototype.hasOwnProperty.call(opt,'next') && opt.next !== undefined) return opt.next;
+  if(node.nextByRoute && Object.prototype.hasOwnProperty.call(node.nextByRoute, route)) return node.nextByRoute[route];
+  return (node.next !== undefined) ? node.next : null;
+}
+function save(){ storageSet({route:state.route, path:state.path, viewIndex:state.viewIndex, answers:state.answers}); }
+
+function computeMeans(){
+  var acc = {};
+  DIMS.forEach(function(d){ acc[d] = {s:0, c:0}; });
+  state.path.forEach(function(id){
+    var node = NODE_MAP[id];
+    if(!node.dims) return;
+    var ans = state.answers[id];
+    if(!ans) return;
+    node.dims.forEach(function(d){
+      var val = (ans.score && typeof ans.score[d]==='number') ? ans.score[d] : 0;
+      acc[d].s += val; acc[d].c += 1;
+    });
+  });
+  var means = {};
+  DIMS.forEach(function(d){ means[d] = acc[d].c>0 ? acc[d].s/acc[d].c : 0; });
+  return means;
+}
+
+function decide(m, route){
+  var sorted = DIMS.slice().sort(function(a,b){ return m[b]-m[a]; });
+  var top = sorted[0], second = sorted[1];
+  function close(a,b){ return Math.abs(m[a]-m[b]) <= 0.4; }
+  if(DIMS.every(function(k){ return m[k] < 1.1; })) return 'low_relaxed';
+  if(route==='A' && (top==='au' || m.au>=2)) return 'active_autonomous';
+  if(top==='ex' || (close('ex',second) && m.ex>=2)) return 'ex_primary';
+  if(close('av','ax') && m.av>=1.8 && m.ax>=1.8) return 'mix_av_ax';
+  if(close('au','av')) return 'mix_au_av';
+  if(close('ex','ax') && m.ex>=1.8 && m.ax>=1.8) return 'mix_ex_ax';
+  if(top==='av') return 'av_primary';
+  if(top==='ax') return 'ax_primary';
+  if(top==='au') return 'mix_au_av';
+  return 'undefined_d';
+}
+
+/* ============================ 交互 ============================ */
+var pendingTimer = null;
+function handleSelect(nodeId, optIndex){
+  var node = NODE_MAP[nodeId];
+  var opt = node.options[optIndex];
+  var routeChanged = !!opt.setRoute && opt.setRoute !== state.route;
+  if(opt.setRoute) state.route = opt.setRoute;
+  state.answers[nodeId] = {index:optIndex, score:opt.score || {}};
+  var newNext = resolveNext(node, state.route, opt);
+  var oldDirect = state.path[state.viewIndex+1];
+  var branchChanged = routeChanged || (newNext !== oldDirect);
+  if(branchChanged){
+    var removed = state.path.slice(state.viewIndex+1);
+    removed.forEach(function(id){ delete state.answers[id]; });
+    state.path = state.path.slice(0, state.viewIndex+1);
+    if(newNext){ state.path.push(newNext); state.viewIndex = state.path.length-1; }
+    else { state.viewIndex = state.path.length-1; }
+  }else{
+    if(newNext){ state.viewIndex++; }
+  }
+  save(); render();
+}
+function goBack(){ if(state.viewIndex>0){ state.viewIndex--; save(); render(); } }
+function restart(){
+  if(pendingTimer){ clearTimeout(pendingTimer); pendingTimer=null; }
+  storageClear();
+  state = { route:'B', path:['q0'], viewIndex:0, answers:{} };
+  render();
+}
+
+/* ============================ 渲染 ============================ */
+var app = document.getElementById('app');
+var progressEl = document.getElementById('progress');
+var barFill = document.getElementById('barfill');
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(text!==undefined) e.textContent = text;
+  return e;
+}
+function expectedTotal(){
+  var base = ROUTE_BASE[state.route] || 0;
+  if(state.path.indexOf('av_stepback')>=0) base += 1;
+  return base;
+}
+function barPercent(){
+  return Math.min(100, Math.round(state.viewIndex / expectedTotal() * 100));
+}
+function render(){
+  var nodeId = state.path[state.viewIndex];
+  var node = NODE_MAP[nodeId];
+  var ans = state.answers[nodeId];
+  if(ans !== undefined){
+    var opt0 = node.options[ans.index];
+    if(resolveNext(node, state.route, opt0) === null){ showResult(); return; }
+  }
+  progressEl.textContent = '第 ' + (state.viewIndex+1) + ' 题 / 当前路径约 ' + expectedTotal() + ' 题';
+  barFill.style.width = barPercent() + '%';
+
+  var frag = document.createDocumentFragment();
+  frag.appendChild(el('div','q-text', node.question));
+  if(nodeId==='q0') frag.appendChild(el('div','q-hint','凭第一反应选就好，没有标准答案。'));
+
+  var wrap = el('div','opts');
+  wrap.setAttribute('role','radiogroup');
+  wrap.setAttribute('aria-label', node.question);
+  node.options.forEach(function(opt, i){
+    var b = el('button','opt', opt.text);
+    b.setAttribute('role','radio');
+    b.setAttribute('aria-checked', ans && ans.index===i ? 'true':'false');
+    if(ans && ans.index===i) b.classList.add('selected');
+    b.addEventListener('click', function(){
+      if(pendingTimer) clearTimeout(pendingTimer);
+      var buttons = wrap.querySelectorAll('.opt');
+      buttons.forEach(function(x){ x.classList.remove('selected'); x.setAttribute('aria-checked','false'); });
+      b.classList.add('selected');
+      b.setAttribute('aria-checked','true');
+      pendingTimer = setTimeout(function(){ handleSelect(nodeId, i); }, 200);
+    });
+    wrap.appendChild(b);
+  });
+  frag.appendChild(wrap);
+
+  var nav = el('div','nav');
+  var back = el('button','back','‹ 上一题');
+  back.disabled = state.viewIndex===0;
+  back.setAttribute('aria-label','返回上一题');
+  back.addEventListener('click', goBack);
+  nav.appendChild(back);
+  var clearBtn = el('button','clear','清除记录');
+  clearBtn.addEventListener('click', restart);
+  nav.appendChild(clearBtn);
+  frag.appendChild(nav);
+
+  app.innerHTML = '';
+  app.appendChild(frag);
+}
+
+function showResult(){
+  var means = computeMeans();
+  var key = decide(means, state.route);
+  var r = RESULT_TEXTS[key] || RESULT_TEXTS.undefined_d;
+  progressEl.textContent = '结果已生成';
+  barFill.style.width = '100%';
+  app.innerHTML = '';
+  var frag = document.createDocumentFragment();
+
+  frag.appendChild(el('div','r-label', r.label));
+  frag.appendChild(el('p','r-oneline', r.oneline));
+  var caps = el('div','caps');
+  r.keywords.forEach(function(k){ caps.appendChild(el('span','cap', k)); });
+  frag.appendChild(caps);
+  frag.appendChild(el('p','r-mode','这是一种关系模式，不是缺陷，也不是定论。'));
+
+  var b1 = el('div','r-block'); b1.appendChild(el('h3','','你的样子')); b1.appendChild(el('p','',r.look));
+  frag.appendChild(b1);
+  var b2 = el('div','r-block'); b2.appendChild(el('h3','','卡在哪')); b2.appendChild(el('p','',r.stuck));
+  frag.appendChild(b2);
+  var b3 = el('div','r-block'); b3.appendChild(el('h3','','可以试试')); b3.appendChild(el('p','',r.tryit));
+  frag.appendChild(b3);
+
+  var copyBtn = el('button','btn','复制结果，发给朋友或自己');
+  copyBtn.addEventListener('click', function(){
+    var text = '【我的关系模式】' + r.label + '\n' + r.oneline + '\n我想试试：' + r.tryit;
+    copyText(text, copyBtn);
+  });
+  frag.appendChild(copyBtn);
+  frag.appendChild(el('div','copy-note',''));
+
+  var again = el('button','btn secondary','重新测一次');
+  again.addEventListener('click', restart);
+  frag.appendChild(again);
+
+  var footer = el('div','footer');
+  footer.innerHTML = '这不是定论，模式会随经历变化。<br>本测试为自我觉察工具，不构成心理诊断，结果仅供参照。';
+  frag.appendChild(footer);
+  app.appendChild(frag);
+}
+
+function copyText(text, btn){
+  var note = document.querySelector('.copy-note');
+  function fallback(){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta); return ok;
+    }catch(e){ return false; }
+  }
+  function done(ok){
+    if(note) note.textContent = ok ? '已复制，可以去粘贴啦' : '没复制成功，长按文字也能选择';
+    if(ok && btn){ var t=btn.textContent; btn.textContent='已复制'; setTimeout(function(){ btn.textContent=t; },1500); }
+  }
+  try{
+    if(window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText){
+      window.navigator.clipboard.writeText(text).then(function(){ done(true); }).catch(function(){ done(fallback()); });
+    }else{ done(fallback()); }
+  }catch(e){ done(fallback()); }
+}
+
+init();
+</script>
+</body>
+</html>
